@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block page_title %}Overview{% endblock %}
+
+{% block content %}
+<!-- Hero Greeting -->
+<div class="hero-section scroll-reveal">
+    <h1 class="hero-greeting">Good morning, <strong>Manager</strong></h1>
+    <p class="hero-subtitle">Here's what's happening at your store today</p>
+</div>
+
+<!-- Alerts Strip -->
+<div class="alerts-strip">
+    {% for alert in alerts %}
+    <div class="alert-item {{ alert.type }} scroll-reveal delay-{{ loop.index }}">
+        <i data-lucide="{{ alert.icon }}"></i>
+        <span>{{ alert.message }}</span>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="glass-card kpi-card scroll-reveal delay-1">
+        <div class="kpi-icon revenue">
+            <i data-lucide="indian-rupee"></i>
+        </div>
+        <div class="kpi-content">
+            <span class="kpi-label">Total Revenue</span>
+            <span class="kpi-value" data-count="{{ kpis.total_revenue }}" data-prefix="₹">₹0</span>
+            <span class="kpi-change positive">↑ {{ kpis.revenue_change }}% from last month</span>
+        </div>
+    </div>
+
+    <div class="glass-card kpi-card scroll-reveal delay-2">
+        <div class="kpi-icon waste">
+            <i data-lucide="leaf"></i>
+        </div>
+        <div class="kpi-content">
+            <span class="kpi-label">Waste Saved</span>
+            <span class="kpi-value" data-count="{{ kpis.waste_saved }}" data-prefix="₹">₹0</span>
+            <span class="kpi-change positive">↑ {{ kpis.waste_saved_change }}% improvement</span>
+        </div>
+    </div>
+
+    <div class="glass-card kpi-card scroll-reveal delay-3">
+        <div class="kpi-icon spoilage">
+            <i data-lucide="trash-2"></i>
+        </div>
+        <div class="kpi-content">
+            <span class="kpi-label">Spoilage Rate</span>
+            <span class="kpi-value" data-count="{{ kpis.spoilage_rate }}" data-suffix="%" data-decimals="1">0%</span>
+            <span class="kpi-change {{ 'positive' if kpis.spoilage_change < 0 else 'negative' }}">{{ '↓' if kpis.spoilage_change < 0 else '↑' }} {{ kpis.spoilage_change|abs }}% from last month</span>
+        </div>
+    </div>
+
+    <div class="glass-card kpi-card scroll-reveal delay-4">
+        <div class="kpi-icon discount">
+            <i data-lucide="tag"></i>
+        </div>
+        <div class="kpi-content">
+            <span class="kpi-label">Active Discounts</span>
+            <span class="kpi-value" data-count="{{ kpis.active_discounts }}">0</span>
+            <span class="kpi-change positive">+{{ kpis.discounts_change }} new today</span>
+        </div>
+    </div>
+</div>
+
+<!-- Bento Grid — Main Analytics -->
+<div class="bento-grid">
+    <!-- Revenue Trend (large) -->
+    <div class="glass-card span-8 scroll-reveal">
+        <div class="card-header">
+            <div>
+                <h3>Revenue Trend</h3>
+                <p class="card-subtitle">Weekly revenue performance</p>
+            </div>
+            <div class="btn-group">
+                <button class="filter-btn active" data-period="daily">Daily</button>
+                <button class="filter-btn" data-period="weekly">Weekly</button>
+                <button class="filter-btn" data-period="monthly">Monthly</button>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Category Split -->
+    <div class="glass-card span-4 scroll-reveal delay-1">
+        <div class="card-header">
+            <h3>Category Split</h3>
+        </div>
+        <div class="chart-container short">
+            <canvas id="categoryChart"></canvas>
+        </div>
+        <div class="mt-sm">
+            <div class="stat-mini">
+                <span class="stat-dot" style="background: #10b981"></span>
+                <span class="stat-label">Dairy</span>
+                <span class="stat-value">₹34,500</span>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-dot" style="background: #3b82f6"></span>
+                <span class="stat-label">Fruits & Veg</span>
+                <span class="stat-value">₹28,200</span>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-dot" style="background: #f59e0b"></span>
+                <span class="stat-label">Fast Food</span>
+                <span class="stat-value">₹15,800</span>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-dot" style="background: #ef4444"></span>
+                <span class="stat-label">Bakery</span>
+                <span class="stat-value">₹8,910</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PPO Quick Card -->
+    <div class="glass-card span-4 slide-left">
+        <div class="card-header">
+            <h3>PPO Suggestions</h3>
+            <span class="nav-badge">{{ pending_suggestions }}</span>
+        </div>
+        <p class="fs-sm text-gray mb-md">The AI model has {{ pending_suggestions }} new discount recommendations waiting for your review.</p>
+        <div class="flex flex-col gap-sm mb-md">
+            <div class="stat-mini">
+                <span class="stat-dot" style="background: var(--emerald-500)"></span>
+                <span class="stat-label">High confidence (>85%)</span>
+                <span class="stat-value">6</span>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-dot" style="background: var(--warning)"></span>
+                <span class="stat-label">Medium confidence</span>
+                <span class="stat-value">2</span>
+            </div>
+        </div>
+        <a href="/ppo" class="btn btn-primary w-full">
+            <i data-lucide="arrow-right"></i>
+            Review Suggestions
+        </a>
+    </div>
+
+    <!-- Top Products Table -->
+    <div class="glass-card span-8 slide-right">
+        <div class="card-header">
+            <h3>Top Performing Products</h3>
+            <span class="tag">This Week</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Revenue</th>
+                    <th>Units Sold</th>
+                    <th>Trend</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in top_products %}
+                <tr>
+                    <td>
+                        <div class="product-cell">
+                            <span class="product-name">{{ p.name }}</span>
+                            <span class="product-category">{{ p.category }}</span>
+                        </div>
+                    </td>
+                    <td class="fw-600">₹{{ '{:,}'.format(p.revenue) }}</td>
+                    <td>{{ p.units }}</td>
+                    <td>
+                        <span class="kpi-change {{ 'positive' if p.trend > 0 else 'negative' }}">
+                            {{ '↑' if p.trend > 0 else '↓' }} {{ p.trend|abs }}%
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Expiry Alerts Quick Card -->
+    <div class="glass-card span-5 scroll-reveal">
+        <div class="card-header">
+            <h3>Expiry Alerts</h3>
+            <span class="nav-badge danger">{{ critical_count }}</span>
+        </div>
+        <p class="fs-sm text-gray mb-md">Products that need immediate attention</p>
+        <div class="flex flex-col gap-sm">
+            <div class="alert-item critical" style="padding: 0.6rem 0.85rem">
+                <i data-lucide="alert-circle"></i>
+                <span class="fs-sm">Fresh Paneer — <strong>Expires today</strong></span>
+            </div>
+            <div class="alert-item critical" style="padding: 0.6rem 0.85rem">
+                <i data-lucide="alert-circle"></i>
+                <span class="fs-sm">Chole Bhature — <strong>Expires today</strong></span>
+            </div>
+            <div class="alert-item warning" style="padding: 0.6rem 0.85rem; border-left-color: var(--warning)">
+                <i data-lucide="clock" style="color: var(--warning)"></i>
+                <span class="fs-sm">Britannia Bread — <strong>1 day left</strong></span>
+            </div>
+            <div class="alert-item warning" style="padding: 0.6rem 0.85rem; border-left-color: var(--warning)">
+                <i data-lucide="clock" style="color: var(--warning)"></i>
+                <span class="fs-sm">Amul Milk 500ml — <strong>1 day left</strong></span>
+            </div>
+        </div>
+        <a href="/expiry" class="btn btn-secondary w-full mt-md">
+            <i data-lucide="arrow-right"></i>
+            View All Expiry Items
+        </a>
+    </div>
+
+    <!-- Footfall / Hourly Traffic -->
+    <div class="glass-card span-7 scroll-reveal delay-1">
+        <div class="card-header">
+            <h3>Hourly Footfall</h3>
+            <span class="tag">Today</span>
+        </div>
+        <div class="chart-container short">
+            <canvas id="footfallChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Chart.js global defaults
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#6b7280';
+    Chart.defaults.plugins.legend.display = false;
+    Chart.defaults.scale.grid = { color: 'rgba(0,0,0,0.04)', drawBorder: false };
+    Chart.defaults.elements.point.radius = 0;
+    Chart.defaults.elements.point.hoverRadius = 5;
+
+    // Revenue Trend Chart
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx) {
+        const gradient = revenueCtx.getContext('2d').createLinearGradient(0, 0, 0, 280);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.15)');
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: {{ sales.daily_labels | tojson }},
+                datasets: [{
+                    data: {{ sales.daily_revenue | tojson }},
+                    borderColor: '#10b981',
+                    borderWidth: 2.5,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#10b981',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: { callback: v => '₹' + (v/1000).toFixed(0) + 'K' }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: '#1f2937',
+                        titleFont: { weight: '600' },
+                        bodyFont: { size: 13 },
+                        padding: 12,
+                        cornerRadius: 10,
+                        callbacks: {
+                            label: ctx => '₹' + ctx.parsed.y.toLocaleString('en-IN')
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Category Donut Chart
+    const categoryCtx = document.getElementById('categoryChart');
+    if (categoryCtx) {
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ sales.category_labels | tojson }},
+                datasets: [{
+                    data: {{ sales.category_revenue | tojson }},
+                    backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                    borderWidth: 0,
+                    hoverOffset: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    tooltip: {
+                        backgroundColor: '#1f2937',
+                        cornerRadius: 10,
+                        padding: 10,
+                        callbacks: {
+                            label: ctx => ctx.label + ': ₹' + ctx.parsed.toLocaleString('en-IN')
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Footfall Bar Chart
+    const footfallCtx = document.getElementById('footfallChart');
+    if (footfallCtx) {
+        new Chart(footfallCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ sales.hourly_labels | tojson }},
+                datasets: [{
+                    data: {{ sales.hourly_footfall | tojson }},
+                    backgroundColor: ctx => {
+                        const value = ctx.parsed?.y || 0;
+                        return value > 150 ? '#10b981' : value > 80 ? '#34d399' : '#a7f3d0';
+                    },
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    barPercentage: 0.6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 50 } }
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: '#1f2937',
+                        cornerRadius: 10,
+                        callbacks: {
+                            label: ctx => ctx.parsed.y + ' visitors'
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

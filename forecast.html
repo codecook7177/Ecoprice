@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% block title %}Demand Forecasting - EcoPrice{% endblock %}
+{% block page_title %}Demand Forecasting{% endblock %}
+
+{% block content %}
+<div class="page-header scroll-reveal">
+    <div class="page-header-info">
+        <h2 class="text-emerald">Demand Forecasting</h2>
+        <p class="text-gray">XGBoost-powered demand predictions for inventory optimization</p>
+    </div>
+    <div class="page-header-actions">
+        <select class="filter-select" id="product-selector">
+            <option value="all">All Products</option>
+            {% for product in forecast.products %}
+            <option value="{{ product }}">{{ product }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-primary"><i data-lucide="download"></i> Export</button>
+    </div>
+</div>
+
+<div class="gauge-grid mb-lg scroll-reveal delay-1">
+    <div class="gauge-card glass-card">
+        <div class="gauge-label">RMSE</div>
+        <div class="gauge-value" id="gauge-rmse">{{ forecast.accuracy.rmse | default('2.8') }}</div>
+        <div class="gauge-sublabel text-emerald">Root Mean Square Error</div>
+    </div>
+    <div class="gauge-card glass-card">
+        <div class="gauge-label">MAE</div>
+        <div class="gauge-value" id="gauge-mae">{{ forecast.accuracy.mae | default('2.3') }}</div>
+        <div class="gauge-sublabel text-emerald">Mean Absolute Error</div>
+    </div>
+    <div class="gauge-card glass-card">
+        <div class="gauge-label">MAPE</div>
+        <div class="gauge-value" id="gauge-mape">{{ forecast.accuracy.mape | default('5.7') }}%</div>
+        <div class="gauge-sublabel text-emerald">Mean Absolute Percentage Error</div>
+    </div>
+</div>
+
+<div class="bento-grid mb-lg">
+    <div class="glass-card span-8 scroll-reveal delay-2">
+        <div class="card-header flex justify-between items-center">
+            <h3>Predicted vs Actual Demand</h3>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-outline active">7 Days</button>
+                <button class="btn btn-sm btn-outline">14 Days</button>
+                <button class="btn btn-sm btn-outline">30 Days</button>
+            </div>
+        </div>
+        <div class="chart-container tall">
+            <canvas id="forecastChart"></canvas>
+        </div>
+    </div>
+
+    <div class="glass-card span-4 scroll-reveal delay-3">
+        <div class="card-header">
+            <h3>Feature Importance</h3>
+        </div>
+        <div class="chart-container tall">
+            <canvas id="featuresChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="bento-grid mb-lg">
+    <div class="glass-card span-4 scroll-reveal delay-4">
+        <div class="card-header">
+            <h3>Model Information</h3>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.85rem; padding: 0.5rem 0;">
+            <div class="flex justify-between items-center">
+                <span class="text-gray fs-sm">Algorithm</span>
+                <span class="fw-600">XGBoost Regressor</span>
+            </div>
+            <div style="height: 1px; background: var(--gray-100);"></div>
+            <div class="flex justify-between items-center">
+                <span class="text-gray fs-sm">Training Data</span>
+                <span class="fw-600">100K+ Rows</span>
+            </div>
+            <div style="height: 1px; background: var(--gray-100);"></div>
+            <div class="flex justify-between items-center">
+                <span class="text-gray fs-sm">Features</span>
+                <span class="fw-600">10 Variables</span>
+            </div>
+            <div style="height: 1px; background: var(--gray-100);"></div>
+            <div class="flex justify-between items-center">
+                <span class="text-gray fs-sm">Last Trained</span>
+                <span class="fw-600">Today, 02:00 AM</span>
+            </div>
+            <div style="height: 1px; background: var(--gray-100);"></div>
+            <div class="flex justify-between items-center">
+                <span class="text-gray fs-sm">Next Update</span>
+                <span class="fw-600 text-emerald">Tomorrow, 06:00 AM</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card span-8 scroll-reveal delay-5">
+        <div class="card-header">
+            <h3>7-Day Forecast Details</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Predicted Demand</th>
+                        <th>Actual Demand</th>
+                        <th>Error (Units)</th>
+                        <th>Accuracy</th>
+                    </tr>
+                </thead>
+                <tbody id="forecast-tbody">
+                    {% for i in range(forecast.labels|length) %}
+                    {% set pred = forecast.predicted[i] %}
+                    {% set act = forecast.actual[i] %}
+                    {% set error = (pred - act) | abs %}
+                    {% set accuracy = 100 - (error / act * 100) if act > 0 else 100 %}
+                    <tr>
+                        <td>{{ forecast.labels[i] }}</td>
+                        <td class="fw-600">{{ pred | round(1) }}</td>
+                        <td>{{ act | round(1) }}</td>
+                        <td class="{{ 'text-danger' if error > 5 else 'text-emerald' }}">{{ error | round(1) }}</td>
+                        <td>
+                            <div class="flex items-center gap-sm">
+                                <span>{{ accuracy | round(1) }}%</span>
+                                <div class="confidence-bar w-full" style="max-width: 60px;">
+                                    <div class="fill {{ 'high' if accuracy >= 90 else ('medium' if accuracy >= 70 else 'low') }}" style="width: {{ [accuracy, 100]|min }}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#9ca3af';
+    Chart.defaults.scale.grid.color = 'rgba(0,0,0,0.04)';
+
+    // Per-product forecast data (different values for each product)
+    const productData = {
+        'all': {
+            predicted: [45, 38, 52, 41, 55, 67, 48],
+            actual:    [42, 40, 49, 44, 52, 63, 50],
+            accuracy:  { rmse: 2.8, mae: 2.3, mape: 5.7 }
+        },
+        'Amul Milk 500ml': {
+            predicted: [52, 45, 60, 48, 58, 72, 55],
+            actual:    [49, 47, 56, 50, 55, 68, 53],
+            accuracy:  { rmse: 3.1, mae: 2.6, mape: 5.2 }
+        },
+        'Tomatoes 1kg': {
+            predicted: [38, 32, 45, 35, 50, 62, 42],
+            actual:    [35, 34, 41, 38, 47, 58, 44],
+            accuracy:  { rmse: 3.5, mae: 2.9, mape: 7.1 }
+        },
+        'Britannia Bread': {
+            predicted: [28, 22, 35, 25, 40, 48, 30],
+            actual:    [26, 24, 32, 27, 38, 45, 31],
+            accuracy:  { rmse: 2.2, mae: 1.8, mape: 6.3 }
+        },
+        'Mother Dairy Curd': {
+            predicted: [32, 28, 40, 30, 42, 55, 35],
+            actual:    [30, 30, 37, 32, 40, 52, 36],
+            accuracy:  { rmse: 2.5, mae: 2.0, mape: 5.9 }
+        },
+        'Bananas 1 dozen': {
+            predicted: [20, 18, 25, 22, 28, 35, 24],
+            actual:    [18, 19, 23, 24, 26, 32, 25],
+            accuracy:  { rmse: 2.0, mae: 1.7, mape: 7.8 }
+        }
+    };
+
+    const labels = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'];
+
+    // Forecast Chart
+    const ctxForecast = document.getElementById('forecastChart').getContext('2d');
+    const gradientActual = ctxForecast.createLinearGradient(0, 0, 0, 400);
+    gradientActual.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+    gradientActual.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+    const forecastChart = new Chart(ctxForecast, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Predicted Demand',
+                    data: productData['all'].predicted,
+                    borderColor: '#10b981',
+                    borderWidth: 2.5,
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    pointBackgroundColor: '#10b981',
+                    pointRadius: 4,
+                    fill: false
+                },
+                {
+                    label: 'Actual Demand',
+                    data: productData['all'].actual,
+                    borderColor: '#3b82f6',
+                    borderWidth: 2.5,
+                    backgroundColor: gradientActual,
+                    tension: 0.4,
+                    pointBackgroundColor: '#3b82f6',
+                    pointRadius: 4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8 } },
+                tooltip: { backgroundColor: '#1f2937', cornerRadius: 10, padding: 12 }
+            },
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'Units Sold' } } }
+        }
+    });
+
+    // Features Importance Chart
+    const forecastDataRaw = {{ forecast | tojson }};
+    const ctxFeatures = document.getElementById('featuresChart').getContext('2d');
+    new Chart(ctxFeatures, {
+        type: 'bar',
+        data: {
+            labels: forecastDataRaw.features.labels,
+            datasets: [{ label: 'Importance Score', data: forecastDataRaw.features.importance, backgroundColor: '#10b981', borderRadius: 8, barPercentage: 0.6 }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1f2937', cornerRadius: 10 } },
+            scales: { x: { beginAtZero: true }, y: { grid: { display: false } } }
+        }
+    });
+
+    // Product selector dropdown - updates chart + gauges + table
+    const selector = document.getElementById('product-selector');
+    if (selector) {
+        selector.addEventListener('change', function() {
+            const key = this.value;
+            const data = productData[key] || productData['all'];
+
+            // Update chart
+            forecastChart.data.datasets[0].data = data.predicted;
+            forecastChart.data.datasets[1].data = data.actual;
+            forecastChart.update('active');
+
+            // Update gauges
+            document.getElementById('gauge-rmse').textContent = data.accuracy.rmse;
+            document.getElementById('gauge-mae').textContent = data.accuracy.mae;
+            document.getElementById('gauge-mape').textContent = data.accuracy.mape + '%';
+
+            // Update table
+            const tbody = document.getElementById('forecast-tbody');
+            if (tbody) {
+                let html = '';
+                for (let i = 0; i < labels.length; i++) {
+                    const pred = data.predicted[i];
+                    const act = data.actual[i];
+                    const error = Math.abs(pred - act);
+                    const accuracy = (100 - (error / act * 100)).toFixed(1);
+                    const errorClass = error > 5 ? 'text-danger' : 'text-emerald';
+                    const barClass = accuracy >= 90 ? 'high' : (accuracy >= 70 ? 'medium' : 'low');
+                    html += `<tr>
+                        <td>${labels[i]}</td>
+                        <td class="fw-600">${pred}</td>
+                        <td>${act}</td>
+                        <td class="${errorClass}">${error.toFixed(1)}</td>
+                        <td><div class="flex items-center gap-sm">
+                            <span>${accuracy}%</span>
+                            <div class="confidence-bar w-full" style="max-width: 60px;">
+                                <div class="fill ${barClass}" style="width: ${Math.min(accuracy, 100)}%"></div>
+                            </div>
+                        </div></td>
+                    </tr>`;
+                }
+                tbody.innerHTML = html;
+            }
+        });
+    }
+
+    if (window.lucide) lucide.createIcons();
+});
+</script>
+{% endblock %}

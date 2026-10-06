@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}PPO Discount Engine{% endblock %}
+{% block page_title %}PPO Discount Engine
+<div class="fs-sm text-gray mt-sm" style="font-weight: normal; font-size: 0.9rem;">AI-powered discount recommendations to minimize waste</div>
+{% endblock %}
+
+{% block content %}
+<!-- Impact Panel -->
+<div class="impact-panel scroll-reveal mb-md">
+    <div class="impact-card revenue">
+        <div class="impact-label">Potential Savings</div>
+        <div class="impact-value">₹<span data-count="{{ total_potential_savings }}">{{ total_potential_savings }}</span></div>
+    </div>
+    <div class="impact-card waste">
+        <div class="impact-label">Waste Reduction</div>
+        <div class="impact-value">~35%</div>
+    </div>
+    <div class="impact-card items">
+        <div class="impact-label">Items Affected</div>
+        <div class="impact-value" data-count="8">8</div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar scroll-reveal delay-1 mb-sm flex items-center gap-sm">
+    <button class="filter-btn active" data-filter="all" data-table-target="suggestions-table">All</button>
+    <button class="filter-btn" data-filter="Dairy" data-table-target="suggestions-table">Dairy</button>
+    <button class="filter-btn" data-filter="Bakery" data-table-target="suggestions-table">Bakery</button>
+    <button class="filter-btn" data-filter="F&V" data-table-target="suggestions-table">F&V</button>
+    <button class="filter-btn" data-filter="Fast Food" data-table-target="suggestions-table">Fast Food</button>
+</div>
+
+<!-- Bulk Actions -->
+<div class="action-btns scroll-reveal delay-2 mb-md flex items-center justify-between">
+    <div class="btn-group flex gap-sm">
+        <button class="btn btn-accept" data-bulk="accept-all" data-table-target="suggestions-table">
+            <i data-lucide="check-check"></i> Accept All
+        </button>
+        <button class="btn btn-reject" data-bulk="reject-all" data-table-target="suggestions-table">
+            <i data-lucide="x"></i> Reject All
+        </button>
+    </div>
+    <div class="btn-group flex gap-sm">
+        <button class="btn btn-outline" onclick="printPriceTags()">
+            <i data-lucide="printer"></i> Print Price Tags
+        </button>
+        <button class="btn btn-implement" data-bulk="implement-accepted" data-table-target="suggestions-table">
+            <i data-lucide="zap"></i> Implement All Accepted
+        </button>
+    </div>
+</div>
+
+<!-- Main Suggestions Table -->
+<div class="glass-card scroll-reveal delay-3 mb-lg">
+    <div class="card-header">
+        <h3 class="fw-600">Discount Suggestions</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table w-full" id="suggestions-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Current Price</th>
+                    <th>Discount %</th>
+                    <th>New Price</th>
+                    <th>Confidence</th>
+                    <th>Expiry</th>
+                    <th>Stock vs Demand</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in suggestions %}
+                <tr data-category="{{ item.category }}">
+                    <td class="product-cell">
+                        <div class="product-name fw-600">{{ item.product }}</div>
+                        <div class="product-category fs-xs text-gray">{{ item.category }}</div>
+                    </td>
+                    <td>₹{{ item.current_price }}</td>
+                    <td class="text-emerald fw-600">-{{ item.discount_pct }}%</td>
+                    <td>
+                        <span class="price-strike fs-sm text-gray" style="text-decoration: line-through;">₹{{ item.current_price }}</span>
+                        <span class="price-new fw-600">₹{{ item.new_price }}</span>
+                    </td>
+                    <td>
+                        <div class="confidence-bar" style="width: 100px; height: 8px; background: rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden;">
+                            <div class="fill {% if item.confidence|int >= 80 %}high{% elif item.confidence|int >= 60 %}medium{% else %}low{% endif %}" style="width: {{ item.confidence }}%; height: 100%; background: #10b981;"></div>
+                        </div>
+                        <div class="confidence-text fs-xs mt-xs">{{ item.confidence }}%</div>
+                    </td>
+                    <td>
+                        <span class="badge {% if item.days_to_expiry|int <= 1 %}badge-critical{% elif item.days_to_expiry|int <= 3 %}badge-warning{% else %}badge-normal{% endif %}">
+                            {{ item.days_to_expiry }} days
+                        </span>
+                    </td>
+                    <td>
+                        <div class="fs-sm">{{ item.stock }} units</div>
+                        <div class="fs-xs text-gray">Pred: {{ item.predicted_demand }}</div>
+                    </td>
+                    <td>
+                        <span class="badge status-badge badge-{{ item.status | lower }}">{{ item.status }}</span>
+                    </td>
+                    <td class="action-btns flex gap-sm">
+                        <button class="btn btn-sm btn-accept" data-action="accept" data-id="{{ item.id }}" title="Accept">
+                            <i data-lucide="check"></i>
+                        </button>
+                        <button class="btn btn-sm btn-reject" data-action="reject" data-id="{{ item.id }}" title="Reject">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9">
+                        <div class="empty-state text-center text-gray py-lg">
+                            <i data-lucide="inbox" style="width: 48px; height: 48px; margin-bottom: 10px; opacity: 0.5;"></i>
+                            <p>No active suggestions available.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Discount History -->
+<div class="glass-card scroll-reveal delay-4 mb-lg">
+    <div class="card-header">
+        <h3 class="fw-600">Discount History</h3>
+    </div>
+    <div class="history-list mt-md">
+        {% for h in history %}
+        <div class="history-item flex items-center justify-between py-sm" style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+            <div class="flex items-center gap-md">
+                <div class="history-dot" style="width: 10px; height: 10px; border-radius: 50%; background: {% if h.action == 'accepted' %}#10b981{% else %}#ef4444{% endif %};"></div>
+                <div class="history-content">
+                    <div class="history-product fw-600">{{ h.product }}</div>
+                    <div class="history-meta fs-xs text-gray">{{ h.date }} • {{ h.discount }}% • {{ h.action }}</div>
+                </div>
+            </div>
+            <div class="history-impact {% if '+' in h.revenue_impact %}text-emerald{% else %}text-danger{% endif %} fw-600">
+                {{ h.revenue_impact }}
+                <div class="fs-xs text-gray" style="text-align: right; font-weight: normal;">{{ h.result }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state text-center text-gray py-md">
+            <p>No recent history.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Live Prices (appears when discounts are implemented) -->
+<div class="glass-card scroll-reveal delay-5 mb-lg" id="live-prices-section">
+    <div class="card-header">
+        <div class="flex items-center gap-sm">
+            <h3 class="fw-600">Live Updated Prices</h3>
+            <span class="nav-badge" id="live-prices-count">0</span>
+        </div>
+        <span class="badge badge-active"><i data-lucide="radio" style="width: 12px; height: 12px; margin-right: 4px;"></i> System Synced</span>
+    </div>
+    <p class="fs-sm text-gray mb-md">Prices below have been updated in the system. Staff should update shelf labels accordingly.</p>
+    <table class="data-table w-full">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Original Price</th>
+                <th>New Price</th>
+                <th>Discount</th>
+                <th>Status</th>
+                <th>Updated At</th>
+            </tr>
+        </thead>
+        <tbody id="live-prices-tbody">
+        </tbody>
+    </table>
+</div>
+
+<!-- Hidden Print Area -->
+<div id="print-area" style="display: none;">
+    <!-- Populated dynamically via JS when Print Price Tags is clicked -->
+    <div class="print-tags-container">
+        <h2>EcoPrice Tags</h2>
+        <div id="print-tags-list"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize icons if added dynamically later, otherwise handled by base
+    function printPriceTags() {
+        // Collect accepted tags
+        const acceptedRows = document.querySelectorAll('#suggestions-table tbody tr');
+        let tagsHtml = '';
+        
+        acceptedRows.forEach(row => {
+            const statusBadge = row.querySelector('.status-badge');
+            if (statusBadge && statusBadge.textContent.trim().toLowerCase() === 'accepted') {
+                const product = row.querySelector('.product-name').textContent.trim();
+                const oldPrice = row.querySelector('.price-strike').textContent.trim();
+                const newPrice = row.querySelector('.price-new').textContent.trim();
+                
+                tagsHtml += `
+                    <div style="border: 1px dashed #ccc; padding: 15px; margin-bottom: 10px; width: 300px; display: inline-block; margin-right: 10px;">
+                        <h3 style="margin-top: 0;">${product}</h3>
+                        <p style="color: red; text-decoration: line-through;">${oldPrice}</p>
+                        <h2 style="color: green; margin-bottom: 0;">${newPrice}</h2>
+                    </div>
+                `;
+            }
+        });
+        
+        if (tagsHtml === '') {
+            alert('No accepted discounts to print. Please accept some suggestions first.');
+            return;
+        }
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+            <head><title>Print Price Tags</title></head>
+            <body style="font-family: sans-serif; padding: 20px;">
+                <h1>Discount Price Tags</h1>
+                ${tagsHtml}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    }
+</script>
+{% endblock %}

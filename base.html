@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EcoPrice{% endblock %} · Manager Dashboard</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Icons (Lucide) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <span class="logo-leaf">🌿</span>
+            <span class="logo-text">EcoPrice</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/" class="nav-item {{ 'active' if active_page == 'overview' }}">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Overview</span>
+            </a>
+            <a href="/sales" class="nav-item {{ 'active' if active_page == 'sales' }}">
+                <i data-lucide="bar-chart-3"></i>
+                <span>Sales Analytics</span>
+            </a>
+            <a href="/ppo" class="nav-item {{ 'active' if active_page == 'ppo' }}">
+                <i data-lucide="cpu"></i>
+                <span>PPO Engine</span>
+                {% if pending_suggestions %}
+                <span class="nav-badge">{{ pending_suggestions }}</span>
+                {% endif %}
+            </a>
+            <a href="/forecast" class="nav-item {{ 'active' if active_page == 'forecast' }}">
+                <i data-lucide="trending-up"></i>
+                <span>Forecasting</span>
+            </a>
+            <a href="/expiry" class="nav-item {{ 'active' if active_page == 'expiry' }}">
+                <i data-lucide="alert-triangle"></i>
+                <span>Expiry Tracker</span>
+                {% if critical_count %}
+                <span class="nav-badge danger">{{ critical_count }}</span>
+                {% endif %}
+            </a>
+            <a href="/settings" class="nav-item {{ 'active' if active_page == 'settings' }}">
+                <i data-lucide="settings"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="user-avatar">M</div>
+                <div class="user-info">
+                    <span class="user-name">Manager</span>
+                    <span class="user-role">Store Admin</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <main class="main-content" id="main-content">
+        <!-- Page header -->
+        <header class="page-topbar">
+            <div class="topbar-left">
+                <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="breadcrumb">
+                    <span class="breadcrumb-page">{% block page_title %}Dashboard{% endblock %}</span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <span class="topbar-date">{{ current_date }}</span>
+                <span class="topbar-time">{{ current_time }}</span>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" data-tooltip="Toggle theme">
+                    <i data-lucide="moon" id="theme-icon-dark"></i>
+                    <i data-lucide="sun" id="theme-icon-light" style="display:none"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Page content -->
+        <div class="page-content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

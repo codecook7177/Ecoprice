@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-header scroll-reveal">
+    <div>
+        <h1 class="page-title text-emerald fw-700 fs-xl mb-xs">Settings</h1>
+        <p class="page-subtitle text-gray">Configure model parameters, products, and system preferences</p>
+    </div>
+</div>
+
+<div class="settings-grid bento-grid mt-lg">
+    <!-- Section A: Model Parameters -->
+    <div class="glass-card settings-section span-6 scroll-reveal delay-1">
+        <div class="card-header mb-md">
+            <h2 class="card-title fw-600">Model Parameters</h2>
+        </div>
+        
+        <div class="form-group mb-md">
+            <div class="flex justify-between items-center mb-xs">
+                <label class="form-label fw-600" for="lambda-slider">Lambda (λ) — Spoilage Penalty Weight</label>
+                <span class="range-value badge badge-normal" id="lambda-val">5</span>
+            </div>
+            <p class="form-sublabel text-gray fs-sm mb-sm">Higher values prioritize waste reduction over revenue</p>
+            <input type="range" id="lambda-slider" class="range-slider w-full" min="0" max="10" value="5" step="0.1">
+        </div>
+
+        <div class="form-group mb-md">
+            <div class="flex justify-between items-center mb-xs">
+                <label class="form-label fw-600" for="gamma-slider">Gamma (γ) — Discount Penalty Weight</label>
+                <span class="range-value badge badge-normal" id="gamma-val">2</span>
+            </div>
+            <p class="form-sublabel text-gray fs-sm mb-sm">Prevents unnecessarily deep discounts</p>
+            <input type="range" id="gamma-slider" class="range-slider w-full" min="0" max="5" value="2" step="0.1">
+        </div>
+
+        <div class="form-group mb-lg">
+            <div class="flex justify-between items-center mb-xs">
+                <label class="form-label fw-600" for="max-discount-slider">Max Discount %</label>
+                <span class="range-value badge badge-normal" id="max-discount-val">30</span>
+            </div>
+            <p class="form-sublabel text-gray fs-sm mb-sm">Maximum allowed discount percentage</p>
+            <input type="range" id="max-discount-slider" class="range-slider w-full" min="10" max="50" value="30" step="1">
+        </div>
+
+        <div class="mt-lg pt-sm" style="border-top: 1px solid var(--border-color);">
+            <button class="btn btn-primary w-full" data-action="save-params">Save Parameters</button>
+        </div>
+    </div>
+
+    <!-- Section B: Product Shelf Life -->
+    <div class="glass-card settings-section span-6 scroll-reveal delay-2">
+        <div class="card-header mb-md">
+            <h2 class="card-title fw-600">Product Shelf Life (Days)</h2>
+        </div>
+        
+        <div class="flex flex-col gap-sm mb-lg">
+            <div class="shelf-life-row flex justify-between items-center p-sm rounded" style="background: rgba(0,0,0,0.02);">
+                <span class="shelf-life-product fw-600">Milk</span>
+                <input type="number" class="shelf-life-input form-input w-auto text-center p-xs rounded" style="width: 60px; border: 1px solid var(--border-color);" value="3" min="1">
+            </div>
+            <div class="shelf-life-row flex justify-between items-center p-sm rounded" style="background: rgba(0,0,0,0.02);">
+                <span class="shelf-life-product fw-600">Curd</span>
+                <input type="number" class="shelf-life-input form-input w-auto text-center p-xs rounded" style="width: 60px; border: 1px solid var(--border-color);" value="5" min="1">
+            </div>
+            <div class="shelf-life-row flex justify-between items-center p-sm rounded" style="background: rgba(0,0,0,0.02);">
+                <span class="shelf-life-product fw-600">Bread</span>
+                <input type="number" class="shelf-life-input form-input w-auto text-center p-xs rounded" style="width: 60px; border: 1px solid var(--border-color);" value="2" min="1">
+            </div>
+            <div class="shelf-life-row flex justify-between items-center p-sm rounded" style="background: rgba(0,0,0,0.02);">
+                <span class="shelf-life-product fw-600">Paneer</span>
+                <input type="number" class="shelf-life-input form-input w-auto text-center p-xs rounded" style="width: 60px; border: 1px solid var(--border-color);" value="4" min="1">
+            </div>
+            <div class="shelf-life-row flex justify-between items-center p-sm rounded" style="background: rgba(0,0,0,0.02);">
+                <span class="shelf-life-product fw-600">Fruits</span>
+                <input type="number" class="shelf-life-input form-input w-auto text-center p-xs rounded" style="width: 60px; border: 1px solid var(--border-color);" value="5" min="1">
+            </div>
+            <div class="shelf-life-row flex justify-between items-center p-sm rounded" style="background: rgba(0,0,0,0.02);">
+                <span class="shelf-life-product fw-600">Vegetables</span>
+                <input type="number" class="shelf-life-input form-input w-auto text-center p-xs rounded" style="width: 60px; border: 1px solid var(--border-color);" value="4" min="1">
+            </div>
+            <div class="shelf-life-row flex justify-between items-center p-sm rounded" style="background: rgba(0,0,0,0.02);">
+                <span class="shelf-life-product fw-600">Fast Food</span>
+                <input type="number" class="shelf-life-input form-input w-auto text-center p-xs rounded" style="width: 60px; border: 1px solid var(--border-color);" value="1" min="1">
+            </div>
+        </div>
+        
+        <div class="mt-auto pt-sm" style="border-top: 1px solid var(--border-color);">
+            <button class="btn btn-secondary w-full" data-action="update-shelf-life">Update Shelf Life</button>
+        </div>
+    </div>
+
+    <!-- Section C: Data Upload -->
+    <div class="glass-card settings-section span-12 scroll-reveal delay-3">
+        <div class="card-header mb-md">
+            <h2 class="card-title fw-600">Data Upload</h2>
+        </div>
+        
+        <div class="upload-zone mt-md flex flex-col items-center justify-center p-xl rounded" style="border: 2px dashed rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.03); min-height: 180px; transition: all 0.3s ease; cursor: pointer;">
+            <i data-lucide="upload-cloud" class="text-emerald mb-md" style="width: 48px; height: 48px;"></i>
+            <p class="text-gray fw-600 fs-md mb-xs">Drag & drop your sales CSV here</p>
+            <p class="mb-sm"><a href="#" class="upload-label text-emerald">or click to browse</a></p>
+            <p class="form-sublabel text-gray fs-sm">Supported formats: CSV, XLSX</p>
+        </div>
+        
+        <div class="mt-md flex justify-end">
+            <button class="btn btn-primary" disabled data-action="retrain-model">
+                <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i> Retrain Model
+            </button>
+        </div>
+    </div>
+
+    <!-- Section D: Preferences -->
+    <div class="glass-card settings-section span-12 scroll-reveal delay-4">
+        <div class="card-header mb-md">
+            <h2 class="card-title fw-600">Preferences</h2>
+        </div>
+        
+        <div class="flex flex-col gap-md">
+            <div class="flex justify-between items-center p-sm">
+                <div>
+                    <label class="form-label fw-600 block mb-xs">Dark Mode</label>
+                    <p class="form-sublabel text-gray fs-sm">Enable dark theme across the dashboard</p>
+                </div>
+                <label class="toggle-switch relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-slider"></div>
+                </label>
+            </div>
+            
+            <div class="divider" style="height: 1px; background: var(--border-color);"></div>
+            
+            <div class="flex justify-between items-center p-sm">
+                <div>
+                    <label class="form-label fw-600 block mb-xs">Email Notifications</label>
+                    <p class="form-sublabel text-gray fs-sm">Receive alerts for critical items</p>
+                </div>
+                <label class="toggle-switch relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-slider"></div>
+                </label>
+            </div>
+            
+            <div class="divider" style="height: 1px; background: var(--border-color);"></div>
+            
+            <div class="flex justify-between items-center p-sm">
+                <div>
+                    <label class="form-label fw-600 block mb-xs">Auto-implement High-Confidence Discounts</label>
+                    <p class="form-sublabel text-gray fs-sm">Automatically apply discounts with >90% confidence</p>
+                </div>
+                <label class="toggle-switch relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 toggle-slider"></div>
+                </label>
+            </div>
+            
+            <div class="divider" style="height: 1px; background: var(--border-color);"></div>
+            
+            <div class="flex justify-between items-center p-sm">
+                <div>
+                    <label class="form-label fw-600 block mb-xs">Dashboard Refresh Interval</label>
+                    <p class="form-sublabel text-gray fs-sm">How often data is updated automatically</p>
+                </div>
+                <select class="filter-select form-input w-auto p-sm rounded fw-600" style="border: 1px solid var(--border-color); background: rgba(0,0,0,0.02);">
+                    <option value="5">5 min</option>
+                    <option value="15" selected>15 min</option>
+                    <option value="30">30 min</option>
+                    <option value="60">1 hr</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Range slider value updates
+        const lambdaSlider = document.getElementById('lambda-slider');
+        const lambdaVal = document.getElementById('lambda-val');
+        
+        const gammaSlider = document.getElementById('gamma-slider');
+        const gammaVal = document.getElementById('gamma-val');
+        
+        const maxDiscountSlider = document.getElementById('max-discount-slider');
+        const maxDiscountVal = document.getElementById('max-discount-val');
+        
+        if(lambdaSlider) {
+            lambdaSlider.addEventListener('input', (e) => {
+                lambdaVal.textContent = e.target.value;
+            });
+        }
+        
+        if(gammaSlider) {
+            gammaSlider.addEventListener('input', (e) => {
+                gammaVal.textContent = e.target.value;
+            });
+        }
+        
+        if(maxDiscountSlider) {
+            maxDiscountSlider.addEventListener('input', (e) => {
+                maxDiscountVal.textContent = e.target.value;
+            });
+        }
+        
+        lucide.createIcons();
+    });
+</script>
+{% endblock %}

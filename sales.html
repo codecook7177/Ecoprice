@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+{% block title %}Sales Analytics - EcoPrice{% endblock %}
+{% block page_title %}Sales Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header scroll-reveal slide-left">
+    <div>
+        <h2>Sales Analytics</h2>
+        <p class="text-gray">Track revenue, performance, and trends across your store</p>
+    </div>
+</div>
+
+<div class="filter-bar scroll-reveal delay-1">
+    <div class="btn-group">
+        <button class="btn btn-outline filter-btn active" data-period="daily">Daily</button>
+        <button class="btn btn-outline filter-btn" data-period="weekly">Weekly</button>
+        <button class="btn btn-outline filter-btn" data-period="monthly">Monthly</button>
+    </div>
+</div>
+
+<div class="kpi-grid scroll-reveal delay-2 mb-lg">
+    <div class="kpi-card glass-card">
+        <div class="kpi-icon text-emerald">
+            <i data-lucide="indian-rupee"></i>
+        </div>
+        <div class="kpi-content">
+            <div class="kpi-label">Total Revenue</div>
+            <div class="kpi-value" data-count="87410">₹87,410</div>
+            <div class="kpi-change positive"><i data-lucide="trending-up"></i> 12.5% vs last period</div>
+        </div>
+    </div>
+    <div class="kpi-card glass-card">
+        <div class="kpi-icon text-blue">
+            <i data-lucide="shopping-bag"></i>
+        </div>
+        <div class="kpi-content">
+            <div class="kpi-label">Total Units</div>
+            <div class="kpi-value" data-count="2834">2,834</div>
+            <div class="kpi-change positive"><i data-lucide="trending-up"></i> 8.2% vs last period</div>
+        </div>
+    </div>
+    <div class="kpi-card glass-card">
+        <div class="kpi-icon text-amber">
+            <i data-lucide="receipt"></i>
+        </div>
+        <div class="kpi-content">
+            <div class="kpi-label">Avg Order Value</div>
+            <div class="kpi-value" data-count="308">₹308</div>
+            <div class="kpi-change negative"><i data-lucide="trending-down"></i> 2.1% vs last period</div>
+        </div>
+    </div>
+    <div class="kpi-card glass-card">
+        <div class="kpi-icon text-purple">
+            <i data-lucide="calendar"></i>
+        </div>
+        <div class="kpi-content">
+            <div class="kpi-label">Best Day</div>
+            <div class="kpi-value">Saturday</div>
+            <div class="kpi-change positive">Highest footfall</div>
+        </div>
+    </div>
+</div>
+
+<div class="bento-grid">
+    <!-- Revenue Trend -->
+    <div class="glass-card span-8 scroll-reveal delay-3">
+        <div class="card-header">
+            <h3 class="fw-600">Revenue Trend</h3>
+        </div>
+        <div class="chart-container tall">
+            <canvas id="revenueTrendChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Category Revenue -->
+    <div class="glass-card span-4 scroll-reveal delay-4">
+        <div class="card-header">
+            <h3 class="fw-600">Revenue by Category</h3>
+        </div>
+        <div class="chart-container tall flex items-center justify-center">
+            <canvas id="categoryRevenueChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Top Products Chart -->
+    <div class="glass-card span-6 scroll-reveal delay-5">
+        <div class="card-header">
+            <h3 class="fw-600">Top Products by Revenue</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="topProductsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Units vs Revenue Dual Axis -->
+    <div class="glass-card span-6 scroll-reveal delay-6">
+        <div class="card-header">
+            <h3 class="fw-600">Revenue vs Units Sold</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="dualAxisChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Top Products Table -->
+    <div class="glass-card span-12 scroll-reveal delay-7 mt-lg">
+        <div class="card-header">
+            <h3 class="fw-600">Top Performing Products</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table w-full">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Revenue</th>
+                        <th>Units Sold</th>
+                        <th>Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in top_products %}
+                    <tr>
+                        <td>
+                            <div class="product-cell">
+                                <span class="product-name fw-600">{{ product.name }}</span>
+                            </div>
+                        </td>
+                        <td><span class="tag">{{ product.category }}</span></td>
+                        <td class="fw-600">₹{{ product.revenue }}</td>
+                        <td>{{ product.units }}</td>
+                        <td>
+                            <span class="text-{{ 'emerald' if product.trend > 0 else 'danger' }}">
+                                <i data-lucide="{{ 'trending-up' if product.trend > 0 else 'trending-down' }}" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+                                {{ product.trend|abs }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-gray py-4">No product data available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Data from Flask
+        const salesData = {{ sales | tojson | safe }};
+        const topProductsData = {{ top_products | tojson | safe }};
+
+        // Chart defaults
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#9ca3af';
+        Chart.defaults.plugins.tooltip.backgroundColor = '#1f2937';
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.cornerRadius = 8;
+        
+        const gridConfig = {
+            color: 'rgba(255,255,255,0.05)',
+            drawBorder: false,
+        };
+
+        // 1. Revenue Trend Line Chart
+        const ctxRevenue = document.getElementById('revenueTrendChart').getContext('2d');
+        
+        // Create gradient for fill
+        const gradientRevenue = ctxRevenue.createLinearGradient(0, 0, 0, 400);
+        gradientRevenue.addColorStop(0, 'rgba(16, 185, 129, 0.4)'); // Emerald semi-transparent
+        gradientRevenue.addColorStop(1, 'rgba(16, 185, 129, 0.0)'); // Transparent
+
+        let revenueChart = new Chart(ctxRevenue, {
+            type: 'line',
+            data: {
+                labels: salesData.daily_labels,
+                datasets: [{
+                    label: 'Revenue (₹)',
+                    data: salesData.daily_revenue,
+                    borderColor: '#10b981',
+                    backgroundColor: gradientRevenue,
+                    borderWidth: 2.5,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#fff',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        grid: gridConfig,
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return '₹' + value; }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Handle period toggles
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update active class
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+
+                const period = e.target.getAttribute('data-period');
+                if (period === 'daily') {
+                    revenueChart.data.labels = salesData.daily_labels;
+                    revenueChart.data.datasets[0].data = salesData.daily_revenue;
+                } else if (period === 'weekly') {
+                    revenueChart.data.labels = salesData.weekly_labels;
+                    revenueChart.data.datasets[0].data = salesData.weekly_revenue;
+                } else if (period === 'monthly') {
+                    revenueChart.data.labels = salesData.monthly_labels;
+                    revenueChart.data.datasets[0].data = salesData.monthly_revenue;
+                }
+                revenueChart.update();
+            });
+        });
+
+        // 2. Category Revenue Donut Chart
+        const ctxCategory = document.getElementById('categoryRevenueChart').getContext('2d');
+        new Chart(ctxCategory, {
+            type: 'doughnut',
+            data: {
+                labels: salesData.category_labels,
+                datasets: [{
+                    data: salesData.category_revenue,
+                    backgroundColor: [
+                        '#10b981', // Emerald
+                        '#3b82f6', // Blue
+                        '#f59e0b', // Amber
+                        '#8b5cf6', // Purple
+                        '#ef4444'  // Red
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 20, usePointStyle: true, boxWidth: 8 }
+                    }
+                }
+            }
+        });
+
+        // 3. Top Products Horizontal Bar Chart
+        const topProdNames = topProductsData.map(p => p.name).slice(0, 5);
+        const topProdRevs = topProductsData.map(p => p.revenue).slice(0, 5);
+
+        const ctxTopProducts = document.getElementById('topProductsChart').getContext('2d');
+        new Chart(ctxTopProducts, {
+            type: 'bar',
+            data: {
+                labels: topProdNames,
+                datasets: [{
+                    label: 'Revenue (₹)',
+                    data: topProdRevs,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 6,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { 
+                        grid: gridConfig,
+                        beginAtZero: true
+                    },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 4. Units vs Revenue Dual Axis Chart
+        const ctxDualAxis = document.getElementById('dualAxisChart').getContext('2d');
+        new Chart(ctxDualAxis, {
+            type: 'line',
+            data: {
+                labels: salesData.daily_labels,
+                datasets: [
+                    {
+                        label: 'Revenue (₹)',
+                        data: salesData.daily_revenue,
+                        type: 'bar',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        borderColor: '#10b981',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Units Sold',
+                        data: salesData.daily_units,
+                        type: 'line',
+                        borderColor: '#3b82f6',
+                        backgroundColor: '#3b82f6',
+                        borderWidth: 2.5,
+                        tension: 0.4,
+                        yAxisID: 'y1',
+                        pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: gridConfig,
+                        title: { display: true, text: 'Revenue (₹)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Units' }
+                    }
+                }
+            }
+        });
+        
+        // Initialize dynamic icons
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    });
+</script>
+{% endblock %}
